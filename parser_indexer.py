@@ -47,7 +47,7 @@ def create_directory(folder_path):
 def dummy(n):
     print("thread ", n)
     time.sleep(10)
-    print("slept 5 for",n)
+    print("slept 10 for",n)
 
 '''
 Class handler to manage and parse 
@@ -126,9 +126,8 @@ class WikiHandler(xml.sax.ContentHandler):
 
 
 '''
-Function to process text for further use
-Includes : case folding, tokenization, stop
-words removal, and stemming.
+Function to process CHUNK sized pages at a time
+Each CHUNK will be processed by an individual thread.
 '''
 
 def process_chunk_pages(title, text, number, index,num):
@@ -139,6 +138,11 @@ def process_chunk_pages(title, text, number, index,num):
 
     print("Finished processing for ---", num, "at : ", time.time()-t0)
 
+'''
+Function to process text for further use
+Includes : case folding, tokenization, stop
+words removal, and stemming.
+'''
 def process_text(text):
     
     processed = []
@@ -175,6 +179,10 @@ def process_text(text):
 
     return(processed)
 
+'''
+Function to extract the infobox from the 
+pages of the wikipedia dump
+'''
 
 def get_infobox(text):
     raw = text.split("{{Infobox")
@@ -189,6 +197,11 @@ def get_infobox(text):
             ans += process_text(lines)
     return ans
 
+'''
+Function to extract the categoris, external links,
+and the references from the body of the page and 
+process them individually as well.
+'''
 
 def split_components(text):
     
