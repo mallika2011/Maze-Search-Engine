@@ -16,6 +16,7 @@ import re
 import json
 import time
 import threading
+import Stemmer
 
 # GLOBAL VARIABLES
 total_tokens = 0
@@ -26,6 +27,8 @@ end_time = 0
 CHUNK = 1000
 stem_words = {}
 all_stopwords = stopwords.words('english')
+# ss = SnowballStemmer("english")
+stemmer = Stemmer.Stemmer('english')
 output_folder = ""
 stat_path = ""
 
@@ -160,13 +163,13 @@ def process_text(text):
     #stemming : check if the word already exists 
     # in the stem_words set. if does, then use, else stem
 
-    ss = SnowballStemmer("english")
     for token in tokens_without_sw:
     
         if token in stem_words:
             stemmed = stem_words[token]
         else:
-            stemmed = ss.stem(token)
+            # stemmed = ss.stem(token)
+            stemmed = stemmer.stemWord(token)
             stem_words[token]=stemmed
 
         processed.append(stemmed) 
