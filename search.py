@@ -111,6 +111,7 @@ def get_field_values(doc):
             num="0"
     values[ind]+=int(num)
 
+    print(doc, i, doc_num, values, sum(values))
     return sum(values),doc_num
 
 
@@ -130,12 +131,15 @@ def thread_perform_search(chunk, words, title, body, cat, info, ref, links):
         if (key in words) or key == title or key == body or key == cat or key == info or key == ref or key == links : 
             docs = lis[1].split('d')
             docs = docs[1:]
+            print("came innnnnn", words,key)
             for doc in docs:
                 value,doc_num = get_field_values(doc)
+                print("vallll ", value, "doccc ", doc_num)
                 if doc_num in answer:
                     answer[doc_num]+=int(value)
                 else:
                     answer[doc_num]=int(value)
+                print("jsoon", answer[doc_num])
         else:
             continue
 
@@ -209,6 +213,7 @@ def start_search(q):
         threads.append(t)
         t.start()
         k+=CHUNK_SIZE
+        j+=CHUNK_SIZE
 
 def write_to_file():
 
