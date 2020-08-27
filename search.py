@@ -35,6 +35,7 @@ STAT_FILE = ""
 INDEX_FILE_PATH = ""
 INV_INDEX_PATH = './index4/index.txt'
 answer = {}
+DEBUG = False
 
 '''
 Function to create new directories
@@ -63,22 +64,22 @@ def process_query(q):
     title = body = cat = info = ref = links = ''
     words = q.split(' ')
     for word in words:
-        if(word[0]=='t'):
+        if(word[0:2]=='t:'):
             title=word
-        elif word[0]=='c':
+        elif word[0:2]=='c:':
             cat = word
-        elif word[0] == 'b':
+        elif word[0:2] == 'b:':
             body=word
-        elif word[0] =='i':
+        elif word[0:2] =='i:':
             info=word
-        elif word[0] == 'r':
+        elif word[0:2] == 'r:':
             ref = word
-        elif word[0] == 'e':
+        elif word[0:2] == 'e:':
             links = word
         else:
             processed.append(word)
 
-    processed = process_text(''.join(processed))
+    processed = process_text(' '.join(processed))
     
     return processed, title, body, cat, info, ref, links
 
@@ -111,7 +112,8 @@ def get_field_values(doc):
             num="0"
     values[ind]+=int(num)
 
-    print(doc, i, doc_num, values, sum(values))
+    if DEBUG:
+        print(doc, i, doc_num, values, sum(values))
     return sum(values),doc_num
 
 
@@ -131,15 +133,12 @@ def thread_perform_search(chunk, words, title, body, cat, info, ref, links):
         if (key in words) or key == title or key == body or key == cat or key == info or key == ref or key == links : 
             docs = lis[1].split('d')
             docs = docs[1:]
-            print("came innnnnn", words,key)
             for doc in docs:
                 value,doc_num = get_field_values(doc)
-                print("vallll ", value, "doccc ", doc_num)
                 if doc_num in answer:
                     answer[doc_num]+=int(value)
                 else:
                     answer[doc_num]=int(value)
-                print("jsoon", answer[doc_num])
         else:
             continue
 
@@ -193,6 +192,16 @@ search and retrieval process for the engine
 def start_search(q):
 
     words, title, body, cat, info, ref, links = process_query(q)
+    
+    if DEBUG:
+        print("q",q)
+        print("w",words)
+        print("t",title)
+        print("b",body)
+        print("c",cat)
+        print("i",info)
+        print("r",ref)
+        print("l",links)
 
     with open(INV_INDEX_PATH, 'r') as f:
         Lines = f.readlines()
