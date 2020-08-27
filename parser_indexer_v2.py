@@ -146,7 +146,23 @@ def process_text(text):
     #case folding : conver to lower case
     text = text.lower() 
 
-    # tokenize by splitting text
+    #tokenize text
+
+    #using another alternative-------------------------------------------------------------------------------
+    # tokenized_text = re.sub(r'[^A-Za-z0-9]+', r' ', text.encode("ascii", errors="ignore").decode())
+
+    #using toktok tokenizer----------------------------------------------------------------------------------
+    # toktok = ToktokTokenizer()
+    # # tokenized_text = [toktok.tokenize(sent) for sent in sent_tokenize(text)]
+    # tokenized_text = toktok.tokenize(text)
+
+    #using treebank tokenizer--------------------------------------------------------------------------------
+    # tokenizer = TreebankWordTokenizer()
+    #using the regex tokenizer
+    # tokenizer = RegexpTokenizer('[a-zA-Z]\w+\'?\w*')
+    # tokenized_text = tokenizer.tokenize(text)
+    
+    # tokenize by splitting text-----------------------------------------------------------------------------
     tokenized_text = re.split(r'[^A-Za-z0-9]+', text)
     tokenized_text = ' '.join(tokenized_text).split()
 
@@ -176,6 +192,15 @@ def process_text(text):
     return(processed)
 
 
+def get_category(text):
+    lists = re.findall(r"\[\[Category:(.*)\]\]", str(text))
+    ans = []
+    for curr in lists:
+        temp = process_text(curr)
+        ans += temp
+    
+    return ans
+
 def get_infobox(text):
     raw = text.split("{{Infobox")
     ans = []
@@ -189,32 +214,35 @@ def get_infobox(text):
             ans += process_text(lines)
     return ans
 
+def get_externallinks(text):
+    raw = text.split("== External links ==")
+    ans = []
 
-def split_components(text):
-    
-    lis = re.split(r"\[\[Category|\[\[ Category", text,1)
-    #storing the value for cateogories
-    if len(lis)==1:
-        category=''
-    else:
-        category = lis[1]
+    if len(raw) <= 1:
+        return []
+    raw = raw[1].split("\n")
+    for lines in raw:
+        if lines and lines[0] == '*':
+            line = process_text(lines)
+            ans += line
+    return ans 
 
-    lis = re.split(r"==External links==|== External links ==", lis[0],1)
-    #storing the value for external links
-    if len(lis)==1:
-        links = ''
-    else:
-        links = lis[1]
-    
-    lis = re.split(r"==References==|== References ==|== references ==|==references==", lis[0],1)
-    #storing the value of references
-    if len(lis)==1:
-        references = ''
-    else:
-        references = lis[1]
-
-    return category, links, references
-
+def get_references(text):
+    raw = text.split("== References ==")
+    ans = []
+    if len(raw) <= 1:
+        return []
+    raw = raw[1].split("\n")
+    for lines in raw:
+        if ("[[Category" in lines) or ("==" in lines) or ("DEFAULTSORT" in lines):
+            break
+        line = process_text(lines)
+        if "Reflist" in line:
+            line.remove("Reflist")
+        if "reflist" in line:
+            line.remove("reflist")
+        ans += line
+    return ans
 
 
 '''
@@ -222,18 +250,16 @@ Function to create the inverted index
 '''
 def create_index(title, text, doc_no, index):
     
-    c,r,l = split_components(text)
-
     processed_components = []
     processed_components.append(process_text(title))
     try:
         processed_components.append(process_text(text))
     except:
         pass
-    processed_components.append(process_text(c))
+    processed_components.append(get_category(text))
     processed_components.append(get_infobox(text))
-    processed_components.append(process_text(r))
-    processed_components.append(process_text(l))
+    processed_components.append(get_references(text))
+    processed_components.append(get_externallinks(text))
 
     add_to_index(doc_no,processed_components, index)
 
