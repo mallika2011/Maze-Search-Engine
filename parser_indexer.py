@@ -292,18 +292,18 @@ def write_to_file(index, titles):
     #write inverted index into file
     print("writing to file ...")
     ftype = ['f','t', 'b', 'c', 'i', 'r', 'e']
-    file = open(INDEX_FILE_PATH, 'w')
-    for ind, word in enumerate(sorted(index.keys())):
-        mystr = word + ':'
-        for doc in index[word]:
-            freq = index[word][doc]
-            mystr += "d" + str(doc)
-            for ind, fs in enumerate(freq):
-                if fs > 0:
-                    mystr += str(ftype[ind]) + str(fs)
-        file.write(mystr + "\n")
-    file.close()
+    with open(INDEX_FILE_PATH,'w') as f:
+        data = ""
+        for key, docs in sorted(index.items()):
+            data += str(key)+":"
+            for doc,values in index[key].items():
+                data+="d"+str(doc)
 
+                for i in range(len(values)):
+                    if values[i]>0:
+                        data+=str(ftype[i]) + str(values[i])
+            data+="\n"
+        f.write(data)
 
 if ( __name__ == "__main__"):
 
