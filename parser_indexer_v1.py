@@ -5,6 +5,7 @@ import xml.sax
 import sys
 import os
 import nltk
+# nltk.download('punkt')
 from nltk import sent_tokenize
 from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
@@ -72,9 +73,6 @@ class WikiHandler(xml.sax.ContentHandler):
         self.CurrentData = tag
         if tag == "page":
             self.data = ''
-        
-        if tag == "text":
-            self.data = ''
 
     # Call when an elements ends
     def endElement(self, tag):
@@ -88,6 +86,7 @@ class WikiHandler(xml.sax.ContentHandler):
             #create a new thread for every CHUNK pages
             if(self.page_count%CHUNK == 0):
                 print("new thread for ", self.page_count, "...")
+                # t = threading.Thread(target=create_index, args=(self.title, self.text, self.page_count, self.index,))
                 t = threading.Thread(target=process_chunk_pages, args=(self.page_titles, self.page_texts, self.page_nos, self.index,self.page_count,))
                 threads.append(t)
                 t.start()
@@ -148,29 +147,39 @@ def process_text(text):
 
     #tokenize text
 
-    #using another alternative-------------------------------------------------------------------------------
+    #using another alternative
     # tokenized_text = re.sub(r'[^A-Za-z0-9]+', r' ', text.encode("ascii", errors="ignore").decode())
 
-    #using toktok tokenizer----------------------------------------------------------------------------------
+    #using toktok tokenizer
     # toktok = ToktokTokenizer()
     # # tokenized_text = [toktok.tokenize(sent) for sent in sent_tokenize(text)]
     # tokenized_text = toktok.tokenize(text)
 
-    #using treebank tokenizer--------------------------------------------------------------------------------
+    # print(tokenized_text)
+    
+    #using treebank tokenizer
     # tokenizer = TreebankWordTokenizer()
     #using the regex tokenizer
     # tokenizer = RegexpTokenizer('[a-zA-Z]\w+\'?\w*')
     # tokenized_text = tokenizer.tokenize(text)
     
-    # tokenize by splitting text-----------------------------------------------------------------------------
+    # tokenize by splitting text
     tokenized_text = re.split(r'[^A-Za-z0-9]+', text)
-    tokenized_text = ' '.join(tokenized_text).split()
+    # tokenized_text = re.findall("[A-Z]{2,}(?![a-z])|[\w]+", str(text))
+
+    if tokenized_text[0]=="":
+        del tokenized_text[0]
+
+    if tokenized_text[-1]=="":
+        del tokenized_text[-1]
 
     #stop words removal
     tokens_without_sw = [token for token in tokenized_text if not token in all_stopwords]
 
     #stemming : check if the word already exists 
     # in the stem_words set. if does, then use, else stem
+    
+    # ps = PorterStemmer()
 
     ss = SnowballStemmer("english")
     for token in tokens_without_sw:
@@ -187,7 +196,6 @@ def process_text(text):
     #add to total tokens in the corpus
     global total_tokens
     total_tokens+=len(processed)
-
 
     return(processed)
 
@@ -249,47 +257,50 @@ def get_references(text):
 Function to create the inverted index
 '''
 def create_index(title, text, doc_no, index):
-    
-    processed_components = []
-    processed_components.append(process_text(title))
+    title_tok = process_text(title)
+    add_to_index(doc_no,title_tok,1, index)
+
+    # Body (Index : 1)
     try:
-        processed_components.append(process_text(text))
+        add_to_index(doc_no, process_text(text),2, index)
     except:
         pass
-    processed_components.append(get_category(text))
-    processed_components.append(get_infobox(text))
-    processed_components.append(get_references(text))
-    processed_components.append(get_externallinks(text))
 
-    add_to_index(doc_no,processed_components, index)
+    # Category (Index : 2)
+    add_to_index(doc_no, get_category(text),3, index)
+
+    # Infobox (Index : 3)
+    add_to_index(doc_no, get_infobox(text),4, index)
+
+    # References (Index : 4)
+    add_to_index(doc_no, get_references(text),5, index)
+
+    # External Links (Index : 5)
+    add_to_index(doc_no, get_externallinks(text),6, index)
+        
 
 '''
 Function to append an entry to the index object.
 '''
-def add_to_index(doc_no,processed_components,index):
+def add_to_index(doc_no,processed_tokens, field, index):
 
-    for i in range(len(processed_components)):
-        processed_tokens = processed_components[i]
-        field = i+1
+    # print(processed_tokens,"field = ", field)
 
-        for token in processed_tokens:
-
-            if(token == ""):
-                continue
-            freq_values = [0, 0, 0, 0, 0, 0, 0]
-            if token not in index:
+    for token in processed_tokens:
+        freq_values = [0, 0, 0, 0, 0, 0, 0]
+        if token not in index:
+            freq_values[field] += 1
+            freq_values[0] += 1
+            index[token] = {}
+            index[token][doc_no] = freq_values
+        else:
+            if doc_no not in index[token]:
                 freq_values[field] += 1
                 freq_values[0] += 1
-                index[token] = {}
                 index[token][doc_no] = freq_values
             else:
-                if doc_no not in index[token]:
-                    freq_values[field] += 1
-                    freq_values[0] += 1
-                    index[token][doc_no] = freq_values
-                else:
-                    index[token][doc_no][field]+=1
-                    index[token][doc_no][0]+=1
+                index[token][doc_no][field]+=1
+                index[token][doc_no][0]+=1
 
 
 def write_to_file(index, titles):
@@ -314,6 +325,8 @@ def write_to_file(index, titles):
         file.write(mystr + "\n")
     file.close()
 
+    # with open("./index/index.txt", "w") as file:
+    #     json.dump(index, file)
 
 if ( __name__ == "__main__"):
 
