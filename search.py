@@ -32,9 +32,9 @@ stat_path = ""
 ftype = ['f','t','b','c','i','r','e']
 
 STAT_FILE = ""
-INDEX_FILE_PATH = ""
-INV_INDEX_PATH = './index4/index.txt'
+INV_INDEX_FILE = "index.txt"
 answer = {}
+posting_list = {}
 DEBUG = False
 
 '''
@@ -59,23 +59,23 @@ Split the query words and assign which words
 are to be searched in different field query
 '''
 
-def process_query(q):
+def format_query(q):
     processed = []
     title = body = cat = info = ref = links = ''
     words = q.split(' ')
     for word in words:
         if(word[0:2]=='t:'):
-            title=word
+            title=''.join(process_text(word[2:]))
         elif word[0:2]=='c:':
-            cat = word
+            cat = ''.join(process_text(word[2:]))
         elif word[0:2] == 'b:':
-            body=word
+            body=''.join(process_text(word[2:]))
         elif word[0:2] =='i:':
-            info=word
+            info=''.join(process_text(word[2:]))
         elif word[0:2] == 'r:':
-            ref = word
+            ref = ''.join(process_text(word[2:]))
         elif word[0:2] == 'e:':
-            links = word
+            links = ''.join(process_text(word[2:]))
         else:
             processed.append(word)
 
@@ -114,7 +114,7 @@ def get_field_values(doc):
 
     if DEBUG:
         print(doc, i, doc_num, values, sum(values))
-    return sum(values),doc_num
+    return values,doc_num
 
 
 
@@ -122,25 +122,39 @@ def get_field_values(doc):
 Threads per 1e5 rows of the inverted index. 
 Each thread searches independently of the other.
 '''
-def thread_perform_search(chunk, words, title, body, cat, info, ref, links):
-
+def thread_perform_search(chunk, formatted_query):
+    
+    if DEBUG:
+        print("formatted q ", formatted_query)
+    
     for line in chunk:
 
         lis = line.split(':')
         key = lis[0]
-        
-        #if key is part of the query string
-        if (key in words) or key == title or key == body or key == cat or key == info or key == ref or key == links : 
-            docs = lis[1].split('d')
-            docs = docs[1:]
-            for doc in docs:
-                value,doc_num = get_field_values(doc)
-                if doc_num in answer:
-                    answer[doc_num]+=int(value)
-                else:
-                    answer[doc_num]=int(value)
-        else:
-            continue
+
+        #check if the key in the index belongs to any of the 6 possibilities
+        #of the query string. If it does, then obtain the freq of occurance
+
+        for i, q in enumerate(formatted_query):
+            if (i==0 and key in q) or (i!=0 and key==q) :
+
+                docs = lis[1].split('d')
+                docs = docs[1:]
+                for doc in docs:
+                    value,doc_num = get_field_values(doc)
+                    if value[i]>0:
+                        if doc_num in answer:
+                            answer[int(doc_num)]+=int(value[i])
+                        else:
+                            answer[int(doc_num)]=int(value[i])
+
+                        #add word and doc_num to posting list for phase1
+                        if key in posting_list:
+                            posting_list[key].append([doc_num,value[i]])
+                        else:
+                            posting_list[key]=[]
+                            posting_list[key].append([doc_num,value[i]])
+
 
 
 '''
@@ -191,7 +205,8 @@ search and retrieval process for the engine
 '''
 def start_search(q):
 
-    words, title, body, cat, info, ref, links = process_query(q)
+    words, title, body, cat, info, ref, links = format_query(q)
+    formatted_query = [words,title,body,cat,info,ref,links]
     
     if DEBUG:
         print("q",q)
@@ -218,7 +233,7 @@ def start_search(q):
             flag=False
 
         #thread begins to perform search
-        t = threading.Thread(target=thread_perform_search, args=(CHUNK,words, title, body, cat, info, ref, links,))
+        t = threading.Thread(target=thread_perform_search, args=(CHUNK,formatted_query,))
         threads.append(t)
         t.start()
         k+=CHUNK_SIZE
@@ -228,13 +243,28 @@ def write_to_file():
 
     #write search results into file
     print("writing to file ...")
+
+    #Uncomment to view a different formatting.
+    # with open('lol.txt','w') as f:
+    #     result = "Showing results for \""+str(query_str)+"\"\n\nThis file is read as :-\nDoc_No : Freq\n\n"
+    #     for doc in sorted(answer):
+    #         result+=str(doc)+" : "+str(answer[doc])+"\n"
+    #     f.write(result)
+
     with open(OUTPUT_FILE,'w') as f:
-        json.dump(answer, f)
+        result = ""
+        for word in posting_list:
+            result+="\n=== Word : "+str(word)+" ===\n\n"
+            for pairs in posting_list[word]:
+                result+="[DocID : "+str(pairs[0])+" - Freq : "+str(pairs[1])+"]\n"
+
+        f.write(result)
 
 if ( __name__ == "__main__"):
 
     OUTPUT_FILE = sys.argv[1]
-    query_str = sys.argv[2]
+    query_str = sys.argv[3]
+    INV_INDEX_PATH = sys.argv[2]+INV_INDEX_FILE
 
     #create output directory
     output_folder = OUTPUT_FILE.rsplit('/',1)

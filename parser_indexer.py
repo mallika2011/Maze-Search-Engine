@@ -65,6 +65,8 @@ class WikiHandler(xml.sax.ContentHandler):
         self.title = ''
         self.text = ''
         self.index = {}
+        self.id = ''
+        self.id_capture = False
 
         self.page_titles = []
         self.page_texts = []
@@ -79,14 +81,18 @@ class WikiHandler(xml.sax.ContentHandler):
         if tag == "text":
             self.data = ''
 
+        if tag == 'id':
+            self.data = ''
+
     # Call when an elements ends
     def endElement(self, tag):
         if tag == "page":
-            
+
             self.page_titles.append(self.title)
             self.page_texts.append(self.text)
-            self.page_nos.append(self.page_count)
+            self.page_nos.append(self.id)
             self.page_count+=1
+            self.id_capture = False
 
             #create a new thread for every CHUNK pages
             if(self.page_count%CHUNK == 0):
@@ -109,6 +115,12 @@ class WikiHandler(xml.sax.ContentHandler):
         elif tag == "text":
             self.text = self.data
             self.data = ''
+
+        elif tag == 'id':
+            if not self.id_capture:
+                self.id = self.data
+                self.data = ''
+                self.id_capture = True
 
         elif tag == 'mediawiki':
 
@@ -146,7 +158,7 @@ Function to process text for further use
 Includes : case folding, tokenization, stop
 words removal, and stemming.
 '''
-def process_text(text):
+def process_text(text,count_tokens=False):
     
     processed = []
 
@@ -176,8 +188,9 @@ def process_text(text):
     
 
     #add to total tokens in the corpus
-    global total_tokens
-    total_tokens+=len(processed)
+    if count_tokens:
+        global total_tokens
+        total_tokens+=len(tokenized_text)
 
 
     return(processed)
@@ -241,9 +254,9 @@ def create_index(title, text, doc_no, index):
     c,r,l = split_components(text)
 
     processed_components = []
-    processed_components.append(process_text(title))
+    processed_components.append(process_text(title,True))
     try:
-        processed_components.append(process_text(text))
+        processed_components.append(process_text(text,True))
     except:
         pass
     processed_components.append(process_text(c))
