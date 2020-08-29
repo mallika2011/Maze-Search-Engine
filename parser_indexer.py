@@ -151,7 +151,7 @@ def process_chunk_pages(title, text, number, index,num):
     for i in range(len(title)):
         create_index(title[i],text[i],number[i], index)
 
-    print("Finished processing for ---", num, "at : ", time.time()-t0)
+    print("Finished processing for ---", num, "in : ", time.time()-t0)
 
 '''
 Function to process text for further use
@@ -308,6 +308,11 @@ def write_to_file(index, titles):
     with open(INDEX_FILE_PATH,'w') as f:
         data = ""
         for key, docs in sorted(index.items()):
+            
+            #to reduce index size
+            if (len(key))>27 or len(index[key])<=1:
+                continue
+
             data += str(key)+":"
             for doc,values in index[key].items():
                 data+="d"+str(doc)
@@ -330,7 +335,7 @@ if ( __name__ == "__main__"):
     if len(stat_dir)>1:
         create_directory(stat_dir[0])
 
-    INDEX_FILE_PATH = output_folder+'/index.txt'
+    INDEX_FILE_PATH = output_folder+'index.txt'
 
     # create an XMLReader
     parser = xml.sax.make_parser()

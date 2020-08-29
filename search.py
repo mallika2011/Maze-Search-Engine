@@ -242,7 +242,7 @@ def start_search(q):
 def write_to_file():
 
     #write search results into file
-    print("writing to file ...")
+    print("writing to file : ", OUTPUT_FILE, "...")
 
     #Uncomment to view a different formatting.
     # with open('lol.txt','w') as f:
@@ -262,10 +262,9 @@ def write_to_file():
 
 if ( __name__ == "__main__"):
 
-    OUTPUT_FILE = sys.argv[1]
-    query_str = sys.argv[3]
-    INV_INDEX_PATH = sys.argv[2]+INV_INDEX_FILE
-
+    OUTPUT_FILE = 'search/result.txt'
+    INV_INDEX_PATH = sys.argv[1]+INV_INDEX_FILE
+    query_str = sys.argv[2]
     #create output directory
     output_folder = OUTPUT_FILE.rsplit('/',1)
     create_directory(output_folder[0])
