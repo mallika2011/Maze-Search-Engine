@@ -60,28 +60,36 @@ are to be searched in different field query
 '''
 
 def format_query(q):
-    processed = []
-    title = body = cat = info = ref = links = ''
-    words = q.split(' ')
-    for word in words:
-        if(word[0:2]=='t:'):
-            title=''.join(process_text(word[2:]))
-        elif word[0:2]=='c:':
-            cat = ''.join(process_text(word[2:]))
-        elif word[0:2] == 'b:':
-            body=''.join(process_text(word[2:]))
-        elif word[0:2] =='i:':
-            info=''.join(process_text(word[2:]))
-        elif word[0:2] == 'r:':
-            ref = ''.join(process_text(word[2:]))
-        elif word[0:2] == 'e:':
-            links = ''.join(process_text(word[2:]))
-        else:
-            processed.append(word)
 
-    processed = process_text(' '.join(processed))
+    title = []
+    body = []
+    cat = []
+    info = []
+    ref = []
+    links = []
+    processed = []
+    formatted = [[] for _ in range(7)]
+    words = q.split(' ')
+    cur ='n'
+    fields = ['t:','b:','c:','i:','r:','e:'] 
+    for word in words:
+        flag = False
+        for i,f in enumerate(fields):
+            if word[0:2] == f:
+                word = word[2:]
+                formatted[i+1].append(word)
+                cur = f
+                flag = True
+            elif cur == f:
+                formatted[i+1].append(word)
+                flag = True
+        if not flag:
+            formatted[0].append(word)
+
+    for field in formatted:
+        field = process_text(' '.join(field))
     
-    return processed, title, body, cat, info, ref, links
+    return formatted
 
 
 '''
@@ -136,12 +144,12 @@ def thread_perform_search(chunk, formatted_query):
         #of the query string. If it does, then obtain the freq of occurance
 
         for i, q in enumerate(formatted_query):
-            if (i==0 and key in q) or (i!=0 and key==q) :
-
+            if (key in q) :
                 docs = lis[1].split('d')
                 docs = docs[1:]
                 for doc in docs:
                     value,doc_num = get_field_values(doc)
+
                     if value[i]>0:
                         if doc_num in answer:
                             answer[int(doc_num)]+=int(value[i])
@@ -205,18 +213,18 @@ search and retrieval process for the engine
 '''
 def start_search(q):
 
-    words, title, body, cat, info, ref, links = format_query(q)
-    formatted_query = [words,title,body,cat,info,ref,links]
+    formatted_query = format_query(q)
+    # formatted_query = [words,title,body,cat,info,ref,links]
     
     if DEBUG:
         print("q",q)
-        print("w",words)
-        print("t",title)
-        print("b",body)
-        print("c",cat)
-        print("i",info)
-        print("r",ref)
-        print("l",links)
+        print("w",formatted_query[0])
+        print("t",formatted_query[1])
+        print("b",formatted_query[2])
+        print("c",formatted_query[3])
+        print("i",formatted_query[4])
+        print("r",formatted_query[5])
+        print("l",formatted_query[6])
 
     with open(INV_INDEX_PATH, 'r') as f:
         Lines = f.readlines()

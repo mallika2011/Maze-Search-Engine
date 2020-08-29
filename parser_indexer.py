@@ -201,16 +201,25 @@ pages of the wikipedia dump
 '''
 
 def get_infobox(text):
-    raw = text.split("{{Infobox")
+    
+    ind = [m.start() for m in re.finditer(r'{{Infobox|{{infobox|{{ Infobox| {{ infobox', text)]
     ans = []
-    if len(raw) <= 1:
-        return []
-    for ind in range(1,len(raw)):
-        traw = raw[ind].split("\n")
-        for lines in traw:
-            if lines == "}}":
+    for i in ind:
+        close = False
+        counter = 0
+        end = -1
+        for j in range(i, len(text)-1):
+            if text[j]=='}' and text[j+1] =='}':
+                counter-=1
+            elif text[j]=='{' and text[j+1] =='{':
+                counter+=1
+
+            if counter == 0:
+                end=j+1
                 break
-            ans += process_text(lines)
+        
+        ans+= process_text(text[i:end+1])
+    
     return ans
 
 '''
