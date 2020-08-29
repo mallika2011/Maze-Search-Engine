@@ -271,7 +271,7 @@ def write_to_file():
 
 if ( __name__ == "__main__"):
 
-    OUTPUT_FILE = 'search/result.txt'
+    OUTPUT_FILE = '2018101041/search/result.txt'
     INV_INDEX_PATH = sys.argv[1]+INV_INDEX_FILE
     query_str = sys.argv[2]
     #create output directory
