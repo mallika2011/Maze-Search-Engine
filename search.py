@@ -86,10 +86,11 @@ def format_query(q):
         if not flag:
             formatted[0].append(word)
 
+    proc_formatted = []
     for field in formatted:
-        field = process_text(' '.join(field))
-    
-    return formatted
+        proc_formatted.append(process_text(' '.join(field)))
+
+    return proc_formatted
 
 
 '''
