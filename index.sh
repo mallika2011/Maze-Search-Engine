@@ -4,6 +4,6 @@
 rm -rf $2
 mkdir $2
 
-python3 parser_indexer.py $1 $2 $3
+python3 2018101041/parser_indexer.py $1 $2 $3
 
 
