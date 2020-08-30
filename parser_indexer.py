@@ -123,6 +123,16 @@ class WikiHandler(xml.sax.ContentHandler):
                 self.id_capture = True
 
         elif tag == 'mediawiki':
+            
+            print("new thread for ", self.page_count, "...")
+            t = threading.Thread(target=process_chunk_pages, args=(self.page_titles, self.page_texts, self.page_nos, self.index,self.page_count,))
+            threads.append(t)
+            t.start()
+
+            #reset 1000 page arrays
+            self.page_titles = []
+            self.page_texts = []
+            self.page_nos = []   
 
             #collect all threads
             for t in threads:
