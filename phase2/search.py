@@ -160,7 +160,7 @@ def thread_perform_search(chunk, formatted_query):
                     wt = 1 if i==0 else FIELD_WEIGHT
                     val = wt*(int(value[i]))*idf
 
-                    if doc_num in answer:
+                    if int(doc_num) in answer:
                         answer[int(doc_num)]+=val
                     else:
                         answer[int(doc_num)]=val
