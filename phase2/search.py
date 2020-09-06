@@ -34,12 +34,12 @@ ftype = ['f','t','b','c','i','r','e']
 
 STAT_FILE = ""
 INV_INDEX_FILE = "index0.txt"
-answer = {}
 posting_list = {}
 DEBUG = False
 FIELD_WEIGHT = 100
 K_RESULTS = 50
-N = 0
+N = 73
+TOTAL_TIME = 0
 
 '''
 Function to create new directories
@@ -126,44 +126,56 @@ def get_field_values(doc):
 Threads per 1e5 rows of the inverted index. 
 Each thread searches independently of the other.
 '''
-def thread_perform_search(chunk, formatted_query):
+def perform_search(file, formatted_query):
     
     if DEBUG:
         print("formatted q ", formatted_query)
     
-    for line in chunk:
+    with open(file, 'r') as f1:
 
-        lis = line.split(':')
-        key = lis[0]
-        
+        line = f1.readline().strip('\n')
 
-        #if the key belongs to the query ignore this line
-        if key not in formatted_query[0]:
-            continue
-        
-        #if the key belongs to the query then extract the 
-        #doclist of this word and check the frequency of occurance
-        docs = lis[1].split('d')
-        docs = docs[1:]
+        while line:
 
-        idf = math.log10( N/len(docs) )
-
-        for doc in docs:
+            # print(line)
+            lis = line.split(':')
+            key = lis[0]
             
-            #obtain values for different field queries
-            value,doc_num = get_field_values(doc)
 
-            #check whether the word belong to a field query or no
-            for i,q in enumerate(formatted_query):
-                if key in q and value[i]>0:
-                    
-                    wt = 1 if i==0 else FIELD_WEIGHT
-                    val = wt*(int(value[i]))*idf
+            #if the key belongs to the query ignore this line
+            if key not in formatted_query[0]:
+                line = f1.readline().strip('\n')
+                continue
+            
+            #if the key belongs to the query then extract the 
+            #doclist of this word and check the frequency of occurance
+            docs = lis[1].split('d')
+            docs = docs[1:]
 
-                    if int(doc_num) in answer:
-                        answer[int(doc_num)]+=val
-                    else:
-                        answer[int(doc_num)]=val
+            idf = math.log10( N/len(docs) )
+            
+            for doc in docs:
+                
+                #obtain values for different field queries
+                value,doc_num = get_field_values(doc)
+
+                #check whether the word belong to a field query or no
+                for i,q in enumerate(formatted_query):
+                    if key in q and value[i]>0:
+                        
+                        wt = 1 if i==0 else FIELD_WEIGHT
+                        # val = wt*(int(value[i]))*idf
+
+                        val = wt*(1 + math.log10(int(value[i])))*idf
+
+
+                        if int(doc_num) in answer:
+                            answer[int(doc_num)]+=val
+                        else:
+                            answer[int(doc_num)]=val
+
+            
+            line = f1.readline().strip('\n')
 
 
 
@@ -209,6 +221,17 @@ def process_text(text):
     return(processed)
 
 
+def get_letters(fq):
+
+    letters = []
+    for part in fq:
+        for word in part :
+            if re.match(r"[A-Za-z]",word[0]):
+                letters.append(word[0])
+            else:
+                letters.append("other")
+    return letters
+
 '''
 Execute search by creating threads for the
 search and retrieval process for the engine
@@ -228,32 +251,21 @@ def start_search(q):
         print("r",formatted_query[5])
         print("l",formatted_query[6])
 
-    with open(INV_INDEX_PATH, 'r') as f:
-        Lines = f.readlines()
-    
-    global N
-    N = len(Lines)
-    j=0
-    k=CHUNK_SIZE
-    flag=True
 
-    while(flag):
-        if k <=len(Lines):
-            CHUNK = Lines[j:k]
-        else:
-            CHUNK = Lines[j:len(Lines)]
-            flag=False
+    letters = get_letters(formatted_query)
 
+    for x in letters :
+        file = INDEX_FOLDER + "split/" + x + ".txt"
+        # perform_search(file,formatted_query,)
         #thread begins to perform search
-        t = threading.Thread(target=thread_perform_search, args=(CHUNK,formatted_query,))
+        t = threading.Thread(target=perform_search, args=(file,formatted_query,))
         threads.append(t)
         t.start()
-        k+=CHUNK_SIZE
-        j+=CHUNK_SIZE
+        
 
 def write_to_file():
+
     #write search results into file
-    print("writing to file : ", OUTPUT_FILE, "...")
 
     with open(INDEX_FOLDER+'titles.txt','r') as f1:
         titles = {}
@@ -266,14 +278,14 @@ def write_to_file():
 
 
     #Uncomment to view a different formatting.
-    with open(OUTPUT_FILE,'w') as f:
-        result = "Showing top "+str(K_RESULTS)+" results for \""+str(query_str)+"\"\n\nThis file is read as :-\nDoc_ID : Title : Score\n\n"
+    with open(OUTPUT_FILE,'a') as f:
+        result = "Showing top "+str(K_RESULTS)+" results for \""+str(query_str)+"\"\n\nThis file is read as :-\nDoc_ID : Score : Title\n\n"
         
         sort_answers = sorted(answer.items(), key=lambda x: x[1], reverse=True)
         count = 0
 
         for doc in sort_answers:
-            result+=str(doc[0])+"\t:\t"+titles[str(doc[0])]+"\t:\t"+str(doc[1])+"\n"
+            result+=str(doc[0])+"\t:\t"+str(doc[1])+"\t:\t"+titles[str(doc[0])]+"\n"
             count+=1
             if count == K_RESULTS:
                 break
@@ -282,23 +294,60 @@ def write_to_file():
         if count == 0:
             result+="Sorry, MAZE was not able to find any results for this query :( ...\n"
 
+        result+="=====================================================================================\n"
         f.write(result)
 
 
 if ( __name__ == "__main__"):
 
-    OUTPUT_FILE = '2018101041/search/result.txt'
+    print("\n===========================================")
+    print("       MAZE SEARCH ENGINE : ACTIVATED      ")
+    print("===========================================\n\n")
+
+    OUTPUT_FILE = 'search/queries_op.txt'
     INDEX_FOLDER = sys.argv[1]
     INV_INDEX_PATH = INDEX_FOLDER+INV_INDEX_FILE
-    query_str = sys.argv[2]
+    # query_str = sys.argv[2]
+
+    query_file = sys.argv[2]
+
     #create output directory
     output_folder = OUTPUT_FILE.rsplit('/',1)
     create_directory(output_folder[0])
 
-    start_search(query_str)
+    #clear output file
+    # os.remove(OUTPUT_FILE)
 
-    #collect all threads
-    for t in threads:
-        t.join()
+    q_num = 0
 
-    write_to_file()
+    print("Started Search ... ")
+    with open(query_file,'r') as qf:
+
+        line = qf.readline().strip('\n')
+
+        while(line):
+            answer = {}
+            line = line.split(',')
+
+            q_num+=1
+            K_RESULTS = int(line[0])
+            query_str = line[1].strip()
+
+            s = time.time()
+            #start searching for each query
+            start_search(query_str)
+
+            #collect all threads
+            for t in threads:
+                t.join()
+
+            time_taken = time.time()-s
+
+            TOTAL_TIME += time_taken
+
+            write_to_file()
+            line = qf.readline().strip('\n')
+
+    print("Average total time for", q_num,"queries = ", TOTAL_TIME/q_num)
+    print()
+    print("Results written to file : ", OUTPUT_FILE, "...")
