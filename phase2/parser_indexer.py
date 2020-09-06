@@ -4,6 +4,7 @@
 import xml.sax
 import sys
 import os
+from os import path, listdir
 import nltk
 from nltk import sent_tokenize
 from nltk.corpus import stopwords
@@ -17,24 +18,22 @@ import json
 import time
 import threading
 import Stemmer
+import psutil
 
 # GLOBAL VARIABLES
 total_tokens = 0
 indexed_tokens = 0
 start_time = time.time()
-threads = []
-end_time = 0
-CHUNK = 1000
+CHUNK = 10000
 stem_words = {}
 all_stopwords = stopwords.words('english')
-# ss = SnowballStemmer("english")
 stemmer = Stemmer.Stemmer('english')
 output_folder = ""
 stat_path = ""
 
 STAT_FILE = ""
 INDEX_FILE_PATH = ""
-check = False
+TOTAL_INDICES = 0
 
 
 '''
@@ -60,8 +59,6 @@ the XML wiki data accordingly.
 '''
 class WikiHandler(xml.sax.ContentHandler):
 
-    total_pages = 0
-
     def __init__(self):
         self.CurrentData = ""
         self.data = ""
@@ -69,34 +66,26 @@ class WikiHandler(xml.sax.ContentHandler):
         self.all_titles = {}
         self.title = ''
         self.text = ''
-        self.index = {}
         self.id = ''
         self.id_capture = False
-        self.chunk = 0
 
         self.page_titles = []
         self.page_texts = []
-        self.page_nos = []
+        self.page_ids = []
 
    # Call when an element starts
     def startElement(self, tag, attributes):
-        self.CurrentData = tag
-        if tag == "page":
-            self.data = ''
-        
-        if tag == "text":
-            self.data = ''
-
-        if tag == 'id':
-            self.data = ''
+        self.data = ''
 
     # Call when an elements ends
     def endElement(self, tag):
+        global TOTAL_INDICES
+
         if tag == "page":
 
             self.page_titles.append(self.title)
             self.page_texts.append(self.text)
-            self.page_nos.append(self.id)
+            self.page_ids.append(self.id)
             self.page_count+=1
             self.id_capture = False
 
@@ -104,22 +93,18 @@ class WikiHandler(xml.sax.ContentHandler):
 
             #create a new thread for every CHUNK pages
             if(self.page_count%CHUNK == 0):
-                print("new thread for ", self.chunk, "...")
-                t = threading.Thread(target=process_chunk_pages, args=(self.page_titles, self.page_texts, self.page_nos,self.page_count,self.chunk,self.all_titles))
-                threads.append(t)
-                t.start()
 
-                #reset 1000 page arrays
-                self.page_titles = []
-                self.page_texts = []
-                self.page_nos = []
+                process_chunk_pages(self.page_titles, self.page_texts, self.page_ids,self.all_titles)
+
+                #reset page arrays
+                self.page_titles.clear()
+                self.page_texts.clear()
+                self.page_ids.clear()
                 self.all_titles={}
-                self.chunk+=1          
-            
+                TOTAL_INDICES +=1 
 
         elif tag == "title":
             self.title = self.data
-            # self.all_titles.append(self.title)
             self.data = ''
 
         elif tag == "text":
@@ -134,28 +119,15 @@ class WikiHandler(xml.sax.ContentHandler):
 
         elif tag == 'mediawiki':
             
-            print("new thread for ", self.chunk, "...")
-            t = threading.Thread(target=process_chunk_pages, args=(self.page_titles, self.page_texts, self.page_nos,self.page_count,self.chunk,self.all_titles,))
-            threads.append(t)
-            t.start()
+            process_chunk_pages(self.page_titles, self.page_texts, self.page_ids,self.all_titles)
 
-            #reset 1000 page arrays
-            self.page_titles = []
-            self.page_texts = []
-            self.page_nos = []  
-            self.chunk+=1    
-            
-            #collect all threads
-            for t in threads:
-                t.join()
-
-            print("Time to index = ", time.time() - start_time)
-
-            self.index = {}
+            #reset page arrays
+            self.page_titles.clear()
+            self.page_texts.clear()
+            self.page_ids.clear()     
             self.all_titles = {}
-            WikiHandler.total_pages = self.chunk
-            print("Index Created")
-            
+            TOTAL_INDICES+=1 
+                        
 
     # Call when a character is read
     def characters(self, content):
@@ -167,17 +139,13 @@ Function to process CHUNK sized pages at a time
 Each CHUNK will be processed by an individual thread.
 '''
 
-def process_chunk_pages(title, text, number,num,chunk,all_titles):
+def process_chunk_pages(title, text, ids,all_titles):
 
-    t0 = time.time()
     index = {}
     for i in range(len(title)):
-        create_index(title[i],text[i],number[i], index)
+        create_index(title[i],text[i],ids[i], index)
 
-    print("Finished processing for ---", chunk,num, "in : ", time.time()-t0)
-    
     #write all the titles to the file
-    print("Writing titles to file")
     with open(output_folder+'titles.txt','a') as t:
         
         my_titles = ""
@@ -186,7 +154,7 @@ def process_chunk_pages(title, text, number,num,chunk,all_titles):
 
         t.write(my_titles)
 
-    write_to_file(index, title,chunk)
+    write_to_file(index, title)
 
 
 '''
@@ -241,7 +209,6 @@ def get_infobox(text):
     ind = [m.start() for m in re.finditer(r'{{Infobox|{{infobox|{{ Infobox| {{ infobox', text)]
     ans = []
     for i in ind:
-        close = False
         counter = 0
         end = -1
         for j in range(i, len(text)-1):
@@ -324,6 +291,7 @@ def add_to_index(doc_no,processed_components,index):
 
             if(token == ""):
                 continue
+
             freq_values = [0, 0, 0, 0, 0, 0, 0]
             if token not in index:
                 freq_values[field] += 1
@@ -341,17 +309,16 @@ def add_to_index(doc_no,processed_components,index):
                     index[token][doc_no][0]+=1
 
 
-def write_to_file(index, titles,chunk):
+def write_to_file(index, titles):
 
     #write statistics into file
-    statistics = str(total_tokens)+"\n"+str(len(index))
-    # with open('./index/index'+str(chunk)+'.txt', "w") as file:
+    # statistics = str(total_tokens)+"\n"+str(len(index))
+    # with open('./index/index'+str(INDEX_FILE_PATH)+'.txt', "w") as file:
     #     file.write(statistics)
 
     #write inverted index into file
-    print("writing to file ...")
     ftype = ['f','t', 'b', 'c', 'i', 'r', 'e']
-    with open(INDEX_FILE_PATH+"index"+str(chunk)+'.txt','w') as f:
+    with open(INDEX_FILE_PATH+"index"+str(TOTAL_INDICES)+'.txt','w') as f:
         data = ""
         for key, docs in sorted(index.items()):
             
@@ -371,8 +338,6 @@ def write_to_file(index, titles,chunk):
 
 
 def merge(file1, file2,n1,n2):  
-
-    print("merging ... ",file1,file2,n1,n2)
 
     merge_file = output_folder + "merge.txt"
 
@@ -437,33 +402,39 @@ def merge_sort(pages):
 
 
 
+def get_file_list(mypath):
+    onlyfiles = [path.join(mypath, f) for f in listdir(mypath) if path.isfile(path.join(mypath, f))]
+    return onlyfiles,len(onlyfiles)
 
 if ( __name__ == "__main__"):
 
-    xml_file = sys.argv[1]
+    xml_file_path = sys.argv[1]
     output_folder = sys.argv[2]
     STAT_FILE = sys.argv[3]
-
-    #create stat directory
-    stat_dir = stat_path.rsplit('/',1)
-
-    if len(stat_dir)>1:
-        create_directory(stat_dir[0])
-
     INDEX_FILE_PATH = output_folder
+    all_xml_files,n= get_file_list(xml_file_path)
 
-    # create an XMLReader
-    parser = xml.sax.make_parser()
-    # turn off namepsaces
-    parser.setFeature(xml.sax.handler.feature_namespaces, 0)
+    for i,file in enumerate(all_xml_files) :
 
-    # override the default ContextHandler
-    Handler = WikiHandler()
-    parser.setContentHandler( Handler )
+        start = time.time()
 
-    parser.parse(xml_file)
+        # create an XMLReader
+        parser = xml.sax.make_parser()
+        # turn off namepsaces
+        parser.setFeature(xml.sax.handler.feature_namespaces, 0)
+
+        # override the default ContextHandler
+        Handler = WikiHandler()
+        parser.setContentHandler( Handler )
+
+        print("========= Parsing file ",str(i), "with toatal indices ", TOTAL_INDICES," ===========")
+        print("Memory used = ",psutil.virtual_memory().percent,'\n\n')
+
+        parser.parse(file)
+
+        print("Mini index created in = ", time.time()-start)
     
-    print(WikiHandler.total_pages)
-    merge_sort(WikiHandler.total_pages) 
+    print("Total mini indices = ",TOTAL_INDICES)
+    merge_sort(TOTAL_INDICES) 
 
     print("Total required Time = ", time.time() - start_time)
