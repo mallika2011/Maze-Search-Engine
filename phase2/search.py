@@ -261,23 +261,21 @@ def start_search(q):
         t = threading.Thread(target=perform_search, args=(file,formatted_query,))
         threads.append(t)
         t.start()
-        
 
-def write_to_file():
 
-    #write search results into file
-
+def get_titles():
     with open(INDEX_FOLDER+'titles.txt','r') as f1:
-        titles = {}
         line = f1.readline().strip('\n')
 
         while line:
             arr = line.split(':')
-            titles[arr[0]] = arr[1]
+            if int(arr[0]) in answer:
+                titles[arr[0]] = arr[1]
             line = f1.readline().strip('\n')
 
+def write_to_file():
 
-    #Uncomment to view a different formatting.
+    #write search results into file
     with open(OUTPUT_FILE,'a') as f:
         result = "Showing top "+str(K_RESULTS)+" results for \""+str(query_str)+"\"\n\nThis file is read as :-\nDoc_ID : Score : Title\n\n"
         
@@ -327,6 +325,7 @@ if ( __name__ == "__main__"):
 
         while(line):
             answer = {}
+            titles = {}
             line = line.split(',')
 
             q_num+=1
@@ -341,13 +340,16 @@ if ( __name__ == "__main__"):
             for t in threads:
                 t.join()
 
+            
+            get_titles()
+            write_to_file()
             time_taken = time.time()-s
 
             TOTAL_TIME += time_taken
-
-            write_to_file()
+            
             line = qf.readline().strip('\n')
 
-    print("Average total time for", q_num,"queries = ", TOTAL_TIME/q_num)
+    print("Total time for", q_num,"queries = ", TOTAL_TIME)
+    print("Average time for", q_num,"queries = ", TOTAL_TIME/q_num)
     print()
     print("Results written to file : ", OUTPUT_FILE, "...")
