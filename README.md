@@ -70,6 +70,8 @@ Once the posting lists have been retrieved, each document in the posting list is
 
 ***w<sub>i,j</sub> = tf<sub>i,j</sub> • log<sub>10</sub>(N/di)***
 
-Further, to improve the relevancy of the search instead of using simply ***tf<sub>i,j</sub>*** as the term frequency, ***1+ log<sub>10</sub>(tf<sub>i,j)</sub>*** is used. 
+Further, to improve the relevancy of the search instead of using simply ***tf<sub>i,j</sub>*** as the term frequency, ***1+ log<sub>10</sub>(tf<sub>i,j</sub>)*** is used. 
 
 This is to prevent accounting for any kind of term spamming and also to ensure uniformity as the second occurence of a word does not weigh more than the first.
+
+Furthermore, to increase the priority of the field query results more, an additional weight of ***k=100*** is assigned to such documents' scores.

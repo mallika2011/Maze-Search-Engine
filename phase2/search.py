@@ -38,7 +38,6 @@ posting_list = {}
 DEBUG = False
 FIELD_WEIGHT = 100
 K_RESULTS = 50
-N = 73
 TOTAL_TIME = 0
 
 '''
@@ -263,6 +262,13 @@ def start_search(q):
         t.start()
 
 
+def get_N(fname):
+    with open(fname) as f:
+        for i, l in enumerate(f):
+                pass
+    return i + 1
+
+
 def get_titles():
     with open(INDEX_FOLDER+'titles.txt','r') as f1:
         line = f1.readline().strip('\n')
@@ -317,6 +323,7 @@ if ( __name__ == "__main__"):
     # os.remove(OUTPUT_FILE)
 
     q_num = 0
+    N = get_N(INDEX_FOLDER+'titles.txt')
 
     print("Started Search ... ")
     with open(query_file,'r') as qf:
