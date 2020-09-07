@@ -49,6 +49,9 @@ def create_directory(folder_path):
     my_path = my_path + '/' +folder_path
     if not os.path.exists(my_path):
         os.makedirs(my_path)
+    else:
+        # print(my_path+"/queries_op.txt")
+        os.remove(my_path+"/queries_op.txt")
     return my_path
 
 
