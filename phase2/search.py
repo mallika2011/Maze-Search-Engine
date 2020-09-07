@@ -275,11 +275,16 @@ def get_N(fname):
 def get_titles():
     with open(INDEX_FOLDER+'titles.txt','r') as f1:
         line = f1.readline().strip('\n')
-
+        count = 0
         while line:
             arr = line.split(':')
             if int(arr[0]) in answer:
                 titles[arr[0]] = arr[1]
+                count+=1
+            elif len(answer) < K_RESULTS and count < K_RESULTS:
+                sec_titles[arr[0]] = arr[1]
+                count+=1
+            
             line = f1.readline().strip('\n')
 
 def write_to_file():
@@ -296,6 +301,14 @@ def write_to_file():
             count+=1
             if count == K_RESULTS:
                 break
+        
+        #in case answers aren't sufficient to match K results
+        for doc in sec_titles:
+
+            if count == K_RESULTS:
+                break
+            result+=str(doc)+"\t:\t"+str(0.000000)+"\t:\t"+sec_titles[str(doc)]+"\n"
+            count+=1
         
         #empty search set
         if count == 0:
@@ -335,6 +348,7 @@ if ( __name__ == "__main__"):
 
         while(line):
             answer = {}
+            sec_titles = {}
             titles = {}
             line = line.split(',')
 
