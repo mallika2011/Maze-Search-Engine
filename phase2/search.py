@@ -287,7 +287,7 @@ def get_titles():
             
             line = f1.readline().strip('\n')
 
-def write_to_file():
+def write_to_file(timetaken):
 
     #write search results into file
     with open(OUTPUT_FILE,'a') as f:
@@ -314,6 +314,7 @@ def write_to_file():
         if count == 0:
             result+="Sorry, MAZE was not able to find any results for this query :( ...\n"
 
+        result+="\n Time Taken :  Total = "+str(timetaken) +" Avg = "+str(timetaken/K_RESULTS)+"\n"
         result+="=====================================================================================\n"
         f.write(result)
 
@@ -364,15 +365,18 @@ if ( __name__ == "__main__"):
             for t in threads:
                 t.join()
 
-            
-            get_titles()
-            write_to_file()
+            print("Search Done. Writing to File ...")
             time_taken = time.time()-s
+            get_titles()
+            write_to_file(time_taken)
+            
 
             TOTAL_TIME += time_taken
             
             line = qf.readline().strip('\n')
 
+    print("\n===========================================\n")
+    print("Total docs = ", N)
     print("Total time for", q_num,"queries = ", TOTAL_TIME)
     print("Average time for", q_num,"queries = ", TOTAL_TIME/q_num)
     print()
