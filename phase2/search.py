@@ -36,7 +36,7 @@ STAT_FILE = ""
 INV_INDEX_FILE = "index0.txt"
 posting_list = {}
 DEBUG = False
-FIELD_WEIGHT = 100
+FIELD_WEIGHT = [1,500,100,200,200,100,100]
 K_RESULTS = 50
 TOTAL_TIME = 0
 
@@ -49,7 +49,7 @@ def create_directory(folder_path):
     my_path = my_path + '/' +folder_path
     if not os.path.exists(my_path):
         os.makedirs(my_path)
-    else:
+    elif os.path.isfile(my_path+"/queries_op.txt"):
         # print(my_path+"/queries_op.txt")
         os.remove(my_path+"/queries_op.txt")
     return my_path
@@ -165,7 +165,7 @@ def perform_search(file, formatted_query):
                 for i,q in enumerate(formatted_query):
                     if key in q and value[i]>0:
                         
-                        wt = 1 if i==0 else FIELD_WEIGHT
+                        wt = FIELD_WEIGHT[i]
                         # val = wt*(int(value[i]))*idf
 
                         val = wt*(1 + math.log10(int(value[i])))*idf
