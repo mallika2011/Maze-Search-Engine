@@ -277,7 +277,7 @@ def get_titles():
         line = f1.readline().strip('\n')
         count = 0
         while line:
-            arr = line.split(':')
+            arr = line.split(':',1)
             if int(arr[0]) in answer:
                 titles[arr[0]] = arr[1]
                 count+=1
