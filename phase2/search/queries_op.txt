@@ -1,0 +1,18 @@
+Showing top 10 results for "Cake"
+
+This file is read as :-
+Doc_ID : Score : Title
+
+26220698	:	10.444986415047483	:	List of Cake Boss episodes
+3442980	:	9.932324877904467	:	List of cakes
+390827	:	9.564080421132374	:	Wedding cake
+57572	:	9.406278902707623	:	Cake
+15584441	:	9.327133805933187	:	List of Ace of Cakes episodes
+471952	:	8.876542113947494	:	King cake
+61091	:	8.860614400143511	:	Cake (band)
+246992	:	8.82811610508534	:	Angel food cake
+22895121	:	8.716033575122937	:	Cake Boss
+26296206	:	8.679349289454473	:	Sponge cake
+
+ Time Taken :  Total = 2.290649890899658 Avg = 0.2290649890899658
+=====================================================================================

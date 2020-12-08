@@ -49,9 +49,9 @@ def create_directory(folder_path):
     my_path = my_path + '/' +folder_path
     if not os.path.exists(my_path):
         os.makedirs(my_path)
-    elif os.path.isfile(my_path+"/queries_op.txt"):
-        # print(my_path+"/queries_op.txt")
-        os.remove(my_path+"/queries_op.txt")
+    elif os.path.isfile(my_path+"/2018101041_queries_op.txt"):
+        # print(my_path+"/2018101041_queries_op.txt")
+        os.remove(my_path+"/2018101041_queries_op.txt")
     return my_path
 
 
@@ -71,17 +71,23 @@ def format_query(q):
     words = q.split(' ')
     cur ='n'
     fields = ['t:','b:','c:','i:','r:','e:'] 
+    non = False
+    if words[0][1] == ":":
+        non = True
     for word in words:
 
         #include words in the full count anyways
-        formatted[0].append(word)
-        for i,f in enumerate(fields):
-            if word[0:2] == f:
-                word = word[2:]
-                formatted[i+1].append(word)
-                cur = f
-            elif cur == f:
-                formatted[i+1].append(word)
+        if not non:
+            formatted[0].append(word)
+        else:
+            for i,f in enumerate(fields):
+                if len(word)>1 and word[1]==":":
+                    if word[0:2] == f:
+                        word = word[2:]
+                        formatted[i+1].append(word)
+                        cur = f
+                elif cur == f:
+                    formatted[i+1].append(word)
 
     proc_formatted = []
     for field in formatted:
@@ -255,11 +261,12 @@ def start_search(q):
 
 
     letters = get_letters(formatted_query)
-
-    for x in letters :
+    print(formatted_query)
+    for x in list(set(letters)) :
         file = INDEX_FOLDER + "split/" + x + ".txt"
         # perform_search(file,formatted_query,)
         #thread begins to perform search
+        print("threading for ", x)
         t = threading.Thread(target=perform_search, args=(file,formatted_query,))
         threads.append(t)
         t.start()
@@ -291,13 +298,15 @@ def write_to_file(timetaken):
 
     #write search results into file
     with open(OUTPUT_FILE,'a') as f:
-        result = "Showing top "+str(K_RESULTS)+" results for \""+str(query_str)+"\"\n\nThis file is read as :-\nDoc_ID : Score : Title\n\n"
+        # result = "Showing top "+str(K_RESULTS)+" results for \""+str(query_str)+"\"\n\nThis file is read as :-\nDoc_ID : Score : Title\n\n"
+        result = ""
         
         sort_answers = sorted(answer.items(), key=lambda x: x[1], reverse=True)
         count = 0
 
         for doc in sort_answers:
-            result+=str(doc[0])+"\t:\t"+str(doc[1])+"\t:\t"+titles[str(doc[0])]+"\n"
+            # result+=str(doc[0])+"\t:\t"+str(doc[1])+"\t:\t"+titles[str(doc[0])]+"\n"
+            result+=str(doc[0])+", "+titles[str(doc[0])]+"\n"
             count+=1
             if count == K_RESULTS:
                 break
@@ -307,15 +316,17 @@ def write_to_file(timetaken):
 
             if count == K_RESULTS:
                 break
-            result+=str(doc)+"\t:\t"+str(0.000000)+"\t:\t"+sec_titles[str(doc)]+"\n"
+            # result+=str(doc)+"\t:\t"+str(0.000000)+"\t:\t"+sec_titles[str(doc)]+"\n"
+            result+=str(doc)+", "+sec_titles[str(doc)]+"\n"
             count+=1
         
         #empty search set
         if count == 0:
             result+="Sorry, MAZE was not able to find any results for this query :( ...\n"
 
-        result+="\n Time Taken :  Total = "+str(timetaken) +" Avg = "+str(timetaken/K_RESULTS)+"\n"
-        result+="=====================================================================================\n"
+        result+=str(round(timetaken,3)) +", "+str(round((timetaken/K_RESULTS),3))+"\n\n"
+        # result+="\n Time Taken :  Total = "+str(timetaken) +" Avg = "+str(timetaken/K_RESULTS)+"\n"
+        # result+="=====================================================================================\n"
         f.write(result)
 
 
@@ -325,7 +336,7 @@ if ( __name__ == "__main__"):
     print("       MAZE SEARCH ENGINE : ACTIVATED      ")
     print("===========================================\n\n")
 
-    OUTPUT_FILE = 'search/queries_op.txt'
+    OUTPUT_FILE = 'search/2018101041_queries_op.txt'
     INDEX_FOLDER = sys.argv[1]
     INV_INDEX_PATH = INDEX_FOLDER+INV_INDEX_FILE
     # query_str = sys.argv[2]

@@ -1,5 +1,4 @@
 test.py
-*.txt
 /index*
 enwiki-20200801-pages-articles-multistream1.xml-p1p30303
 enwiki-20200801-pages-articles-multistream1.xml-p1p30303.bz2
@@ -11,3 +10,5 @@ enwiki-20200801-pages-articles-multistream1.xml-p1p30303.bz2
 /phase2/secure.py
 /phase2/split_titles.py
 /phase2/2018101041*
+/phase2/data
+/phase2/index
