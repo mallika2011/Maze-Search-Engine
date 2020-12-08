@@ -8,7 +8,7 @@ The search engine supports two kinds of queries - ***normal queries*** and ***fi
 1. Clone the repository
 
 ```bash
-git clone https://github.com/mallika2011/Search-Engine.git
+git clone https://github.com/mallika2011/Maze-Search-Engine.git
 ```
 
 2. Create a venv and install requirements
