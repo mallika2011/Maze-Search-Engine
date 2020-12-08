@@ -19,6 +19,10 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+```bash
+cd phase2
+```
+
 3. Run the **indexer** code on the wiki dump. It takes 3 arguments. <br/>The second argument is the path to the folder where the index will be created. And the third argument is a text file that will store statistical details about the dump after and before indexing.
 
 ```bash
